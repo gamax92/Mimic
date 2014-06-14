@@ -73,7 +73,7 @@ filesystem.format = function(path) {
 filesystem.sanitise = function(path) {
 	path = filesystem.format(path);
 
-	path = path.replace(/(\/(\.\/)+)|(\/\.$)/g, "/").replace(/\/{2,}/g, "/");
+	path = path.replace(/[":<>?|]/g,"").replace(/(\/(\.\/)+)|(\/\.$)/g, "/").replace(/\/{2,}/g, "/");
 
 	var leadingParents = path.substring(1).match(/^(\.\.\/)+/) || '';
 	if (leadingParents) {
@@ -116,6 +116,23 @@ filesystem.getContainingFolder = function(path) {
 	}
 
 	return folder;
+}
+
+
+filesystem.pathContains = function(pathA, pathB) {
+	pathA = filesystem.sanitise(pathA);
+	pathB = filesystem.sanitise(pathB);
+
+	if (pathB === "..")
+		return false;
+	else if (pathB.substring(0,2) === "../")
+		return false;
+	else if (pathB === pathA)
+		return true;
+	else if (pathA === "")
+		return true;
+	else
+		return pathB.substring(0,pathA.length + 1) === pathA + "/";
 }
 
 
@@ -344,7 +361,7 @@ filesystem.copy = function(from, to) {
 
 			} else {
 				var fileList = filesystem.listRecursively(from, true);
-				for (var i in fileList) {
+				for (var i in fileList) {Contain
 					if (!filesystem.isDir(fileList[i])) {
 						var fileName = filesystem.getName(from) + "/" + fileList[i].substring(from.length);
 						filesystem.write(to + "/" + fileName, filesystem.read(fileList[i]));

@@ -19,6 +19,10 @@ var fsAPI = {};
 
 fsAPI.list = function(L) {
 	var path = C.luaL_checkstring(L, 1);
+	if (!computerFilesystem.isDir(path)) {
+		C.lua_pushstring(L, "Not a directory");
+		C.lua_error(L);
+	}
 	var files = computerFilesystem.list(path);
 
 	if (files) {
@@ -44,8 +48,11 @@ fsAPI.listAll = function(L) {
 	];
 
 	C.lua_newtable(L);
+	C.lua_pushnumber(L, 1);
+	C.lua_pushstring(L, "/rom/");
+	C.lua_rawset(L, -3);
 
-	var fileIterator = 1
+	var fileIterator = 2
 	for (var ii in search) {
 		var files = search[ii];
 
@@ -91,14 +98,20 @@ fsAPI.isReadOnly = function(L) {
 
 
 fsAPI.getSize = function(L) {
-	C.lua_pushnumber(L, config.maxStorageSize);
+	var path = C.luaL_checkstring(L, 1);
+	if (computerFilesystem.isDir(path))
+		C.lua_pushnumber(L, 0);
+	else
+		C.lua_pushnumber(L, config.maxStorageSize);
 
 	return 1;
 }
 
 
 fsAPI.getDrive = function(L) {
-	return 0;
+	var path = C.luaL_checkstring(L, 1);
+	C.lua_pushstring(L, "hdd");
+	return 1;
 }
 
 
@@ -144,6 +157,10 @@ fsAPI.append = function(L) {
 
 fsAPI.makeDir = function(L) {
 	var path = C.luaL_checkstring(L, 1);
+	if (computerFilesystem.exists(path) && !computerFilesystem.isDir(path)) {
+		C.lua_pushstring(L, "File exists");
+		C.lua_error(L);
+	}
 	computerFilesystem.makeDir(path);
 
 	return 0;
@@ -153,7 +170,7 @@ fsAPI.makeDir = function(L) {
 fsAPI.delete = function(L) {
 	var path = C.luaL_checkstring(L, 1);
 	if (!computerFilesystem.delete(path)) {
-		C.lua_pushstring(L, "Access denied");
+		C.lua_pushstring(L, "Access Denied");
 		C.lua_error(L);
 	}
 
@@ -180,6 +197,8 @@ fsAPI.combine = function(L) {
 fsAPI.getName = function(L) {
 	var path = C.luaL_checkstring(L, 1);
 	var result = filesystem.getName(filesystem.format(path));
+	if (result === "")
+		result = "root";
 	C.lua_pushstring(L, result);
 
 	return 1;
@@ -189,6 +208,13 @@ fsAPI.getName = function(L) {
 fsAPI.move = function(L) {
 	var from = C.luaL_checkstring(L, 1);
 	var to = C.luaL_checkstring(L, 2);
+	if (computerFilesystem.exists(to)) {
+		C.lua_pushstring(L, "File exists");
+		C.lua_error(L);
+	} else if (filesystem.pathContains(from,to)) {
+		C.lua_pushstring(L, "Can't move a directory inside itself");
+		C.lua_error(L);
+	}
 	computerFilesystem.move(from, to);
 
 	return 0;
@@ -198,6 +224,13 @@ fsAPI.move = function(L) {
 fsAPI.copy = function(L) {
 	var from = C.luaL_checkstring(L, 1);
 	var to = C.luaL_checkstring(L, 2);
+	if (computerFilesystem.exists(to)) {
+		C.lua_pushstring(L, "File exists");
+		C.lua_error(L);
+	} else if (filesystem.pathContains(from,to)) {
+		C.lua_pushstring(L, "Can't copy a directory inside itself");
+		C.lua_error(L);
+	}
 	computerFilesystem.copy(from, to);
 
 	return 0;

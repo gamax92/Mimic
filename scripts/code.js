@@ -27,6 +27,7 @@ console.log = print\n\
 \n\
 \n\
 local debugLib = debug\n\
+debug = nil\n\
 collectgarbage = nil\n\
 require = nil\n\
 module = nil\n\
@@ -205,6 +206,7 @@ local listAllFiles = fs.listAll\n\
 fs.listAll = nil\n\
 \n\
 function fs.find(path)\n\
+	path = fs.combine(path,"")\n\
 	path = path:gsub("^/+", "")\n\
 	path = path:gsub("/+", "/")\n\
 	path = path:gsub("*", "[^/]-")\n\
@@ -277,7 +279,7 @@ startupScript = nil\n\
 \n\
 \n\
 function os.version()\n\
-	return "CraftOS 1.5"\n\
+	return "CraftOS 1.6"\n\
 end\n\
 \n\
 \n\

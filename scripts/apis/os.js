@@ -40,7 +40,7 @@ osAPI.computerID = osAPI.getComputerID;
 osAPI.setComputerLabel = function(L) {
 	var computer = core.getActiveComputer();
 	var str = C.luaL_checkstring(L, 1);
-	computer.label = str.trim();
+	computer.label = str;
 
 	return 0;
 }
@@ -55,7 +55,7 @@ osAPI.setComputerLabel = function(L) {
 osAPI.clock = function(L) {
 	var computer = core.getActiveComputer();
 	var diff = Date.now() - computer.startClock;
-	var retDiff = Math.round(diff * 0.1) / 100;
+	var retDiff = Math.floor(diff * 0.02) / 20;
 	C.lua_pushnumber(L, retDiff);
 
 	return 1;

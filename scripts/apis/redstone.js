@@ -36,12 +36,32 @@ redstoneAPI.getOutput = function(L) {
 }
 
 
+redstoneAPI.getAnalogInput = function(L) {
+
+}
+
+
 redstoneAPI.getAnalogOutput = function(L) {
 
 }
 
 
 redstoneAPI.setAnalogOutput = function(L) {
+
+}
+
+
+redstoneAPI.getAnalogueInput = function(L) {
+
+}
+
+
+redstoneAPI.getAnalogueOutput = function(L) {
+
+}
+
+
+redstoneAPI.setAnalogueOutput = function(L) {
 
 }
 
