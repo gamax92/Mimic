@@ -83,20 +83,18 @@ osAPI.day = function(L) {
 osAPI.startTimer = function(L) {
 	var computer = core.getActiveComputer();
 	var time = C.luaL_checknumber(L, 1);
-	var targetTime = Date.now()+(time*990);
+	
+	time = Math.ceil(time*20)/20;
+	if (time < 0.05)
+		time = 0.05;
 
 	computer.lastTimerID++;
 
 	var timerID = computer.lastTimerID;
 	setTimeout(function() {
-		var tester = setInterval(function() {
-			if (Date.now() >= targetTime) {
-				clearInterval(tester);
-				computer.eventStack.push(["timer", timerID]);
-				computer.resume();
-			}
-		}, 5);
-	}, time * 970);
+		computer.eventStack.push(["timer", timerID]);
+		computer.resume();
+	}, time * 1000 - (Date.now() - computer.startClock) * 0.02 % 1 * 50 + 5);
 
 	C.lua_pushnumber(L, timerID);
 
