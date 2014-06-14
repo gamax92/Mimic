@@ -105,7 +105,11 @@ osAPI.startTimer = function(L) {
 
 
 osAPI.setAlarm = function(L) {
-
+	var hour = C.luaL_checknumber(L, 1);
+	if (hour < 0 || hour >= 24) {
+		C.lua_pushstring(L, "Number out of range");
+		C.lua_error(L);
+	}
 }
 
 

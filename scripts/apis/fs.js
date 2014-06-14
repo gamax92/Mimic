@@ -19,6 +19,12 @@ var fsAPI = {};
 
 fsAPI.list = function(L) {
 	var path = C.luaL_checkstring(L, 1);
+	path = filesystem.sanitise(path);
+	if (path === "/.." || path.substring(0,4) === "/../") {
+		C.lua_pushstring(L, "Invalid Path");
+		C.lua_error(L);
+	}
+
 	if (!computerFilesystem.isDir(path)) {
 		C.lua_pushstring(L, "Not a directory");
 		C.lua_error(L);
@@ -72,6 +78,11 @@ fsAPI.listAll = function(L) {
 
 fsAPI.exists = function(L) {
 	var path = C.luaL_checkstring(L, 1);
+	path = filesystem.sanitise(path);
+	if (path === "/.." || path.substring(0,4) === "/../") {
+		C.lua_pushboolean(L, 0);
+		return 1
+	}
 	var exists = computerFilesystem.exists(path);
 	C.lua_pushboolean(L, exists ? 1 : 0);
 
@@ -81,6 +92,11 @@ fsAPI.exists = function(L) {
 
 fsAPI.isDir = function(L) {
 	var path = C.luaL_checkstring(L, 1);
+	path = filesystem.sanitise(path);
+	if (path === "/.." || path.substring(0,4) === "/../") {
+		C.lua_pushboolean(L, 0);
+		return 1
+	}
 	var isDir = computerFilesystem.isDir(path);
 	C.lua_pushboolean(L, isDir ? 1 : 0);
 
@@ -99,6 +115,12 @@ fsAPI.isReadOnly = function(L) {
 
 fsAPI.getSize = function(L) {
 	var path = C.luaL_checkstring(L, 1);
+	path = filesystem.sanitise(path);
+	if (path === "/.." || path.substring(0,4) === "/../") {
+		C.lua_pushstring(L, "Invalid Path");
+		C.lua_error(L);
+	}
+
 	if (computerFilesystem.isDir(path))
 		C.lua_pushnumber(L, 0);
 	else
@@ -110,13 +132,35 @@ fsAPI.getSize = function(L) {
 
 fsAPI.getDrive = function(L) {
 	var path = C.luaL_checkstring(L, 1);
-	C.lua_pushstring(L, "hdd");
+	path = filesystem.sanitise(path);
+	if (path === "/.." || path.substring(0,4) === "/../") {
+		C.lua_pushstring(L, "Invalid Path");
+		C.lua_error(L);
+	}
+
+	if (path === "/rom" || path.substring(0,5) === "/rom/")
+		C.lua_pushstring(L, "rom");
+	else
+		C.lua_pushstring(L, "hdd");
+
 	return 1;
 }
 
 
 fsAPI.getFreeSpace = function(L) {
-	return 0;
+	var path = C.luaL_checkstring(L, 1);
+	path = filesystem.sanitise(path);
+	if (path === "/.." || path.substring(0,4) === "/../") {
+		C.lua_pushstring(L, "Invalid Path");
+		C.lua_error(L);
+	}
+
+	if (path === "/rom" || path.substring(0,5) === "/rom/")
+		C.lua_pushnumber(L, 0);
+	else
+		C.lua_pushnil(L);
+
+	return 1;
 }
 
 
@@ -157,7 +201,15 @@ fsAPI.append = function(L) {
 
 fsAPI.makeDir = function(L) {
 	var path = C.luaL_checkstring(L, 1);
-	if (computerFilesystem.exists(path) && !computerFilesystem.isDir(path)) {
+	path = filesystem.sanitise(path);
+	if (path === "/.." || path.substring(0,4) === "/../") {
+		C.lua_pushstring(L, "Invalid Path");
+		C.lua_error(L);
+	}
+	if (path === "/rom" || path.substring(0,5) === "/rom/") {
+		C.lua_pushstring(L, "Access Denied");
+		C.lua_error(L);
+	} else if (computerFilesystem.exists(path) && !computerFilesystem.isDir(path)) {
 		C.lua_pushstring(L, "File exists");
 		C.lua_error(L);
 	}
@@ -169,6 +221,11 @@ fsAPI.makeDir = function(L) {
 
 fsAPI.delete = function(L) {
 	var path = C.luaL_checkstring(L, 1);
+	path = filesystem.sanitise(path);
+	if (path === "/.." || path.substring(0,4) === "/../") {
+		C.lua_pushstring(L, "Invalid Path");
+		C.lua_error(L);
+	}
 	if (!computerFilesystem.delete(path)) {
 		C.lua_pushstring(L, "Access Denied");
 		C.lua_error(L);
@@ -205,10 +262,32 @@ fsAPI.getName = function(L) {
 }
 
 
+fsAPI.getDir = function(L) {
+	var path = C.luaL_checkstring(L, 1);
+	path = filesystem.sanitise(path).substring(1);
+	if (path === "")
+		C.lua_pushstring(L, "..");
+	else {
+		C.lua_pushstring(L, path.substring(0, path.lastIndexOf("/")));
+	}
+
+	return 1;
+}
+
+
 fsAPI.move = function(L) {
 	var from = C.luaL_checkstring(L, 1);
 	var to = C.luaL_checkstring(L, 2);
-	if (computerFilesystem.exists(to)) {
+	from = filesystem.sanitise(from);
+	to = filesystem.sanitise(to);
+	if (from === "/.." || from.substring(0,4) === "/../" || to === "/.." || to.substring(0,4) === "/../") {
+		C.lua_pushstring(L, "Invalid Path");
+		C.lua_error(L);
+	}
+	if (from === "/rom" || from.substring(0,5) === "/rom/" || to === "/rom" || to.substring(0,5) === "/rom/") {
+		C.lua_pushstring(L, "Access denied");
+		C.lua_error(L);
+	} else if (computerFilesystem.exists(to)) {
 		C.lua_pushstring(L, "File exists");
 		C.lua_error(L);
 	} else if (filesystem.pathContains(from,to)) {
@@ -224,7 +303,16 @@ fsAPI.move = function(L) {
 fsAPI.copy = function(L) {
 	var from = C.luaL_checkstring(L, 1);
 	var to = C.luaL_checkstring(L, 2);
-	if (computerFilesystem.exists(to)) {
+	from = filesystem.sanitise(from);
+	to = filesystem.sanitise(to);
+	if (from === "/.." || from.substring(0,4) === "/../" || to === "/.." || to.substring(0,4) === "/../") {
+		C.lua_pushstring(L, "Invalid Path");
+		C.lua_error(L);
+	}
+	if (to === "/rom" || to.substring(0,5) === "/rom/") {
+		C.lua_pushstring(L, "Access denied");
+		C.lua_error(L);
+	} else if (computerFilesystem.exists(to)) {
 		C.lua_pushstring(L, "File exists");
 		C.lua_error(L);
 	} else if (filesystem.pathContains(from,to)) {

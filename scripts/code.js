@@ -34,6 +34,8 @@ module = nil\n\
 package = nil\n\
 newproxy = nil\n\
 load = nil\n\
+math.mod = nil\n\
+string.gfind = nil\n\
 \n\
 \n\
 xpcall = function(_fn, _fnErrorHandler)\n\
@@ -226,16 +228,6 @@ function fs.find(path)\n\
 	end\n\
 \n\
 	return matches\n\
-end\n\
-\n\
-\n\
-function fs.getDir(path)\n\
-	path = path:gsub("^/+", "")\n\
-	path = path:gsub("/+$", "")\n\
-	path = path:gsub("/+", "/")\n\
-\n\
-	local name = fs.getName(path)\n\
-	return path:sub(1, -name:len() - 2)\n\
 end\n\
 \n\
 \n\

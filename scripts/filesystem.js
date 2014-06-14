@@ -55,7 +55,7 @@ filesystem.setup = function(callback) {
 
 
 filesystem.format = function(path) {
-	path = path.replace("\\", "/");
+	path = path.replace(/\\/g, "/");
 	if (path.substring(0, 1) != "/") {
 		path = "/" + path;
 	}
@@ -73,31 +73,34 @@ filesystem.format = function(path) {
 filesystem.sanitise = function(path) {
 	path = filesystem.format(path);
 
-	path = path.replace(/[":<>?|]/g,"").replace(/(\/(\.\/)+)|(\/\.$)/g, "/").replace(/\/{2,}/g, "/");
+	path = path.replace(/[":<>?|]/g,"");
 
-	var leadingParents = path.substring(1).match(/^(\.\.\/)+/) || '';
-	if (leadingParents) {
-		leadingParents = leadingParents[0];
+	splitPath = path.split("/");
+	stack = [];
+
+	for(i = 0; i < splitPath.length; i++) {
+		piece = splitPath[i];
+		if(piece !== "" && piece !== ".") {
+			if(piece === "..") {
+				if(stack.length !== 0) {
+					part = stack[stack.length-1];
+					if(part !== "..") {
+						stack.pop();
+					} else {
+						stack.push("..");
+					}
+				} else {
+					stack.push("..");
+				}
+			} else if(piece.length >= 255) {
+				stack.push(piece.substring(0, 255));
+			} else {
+				stack.push(piece);
+			}
+		}
 	}
 
-	while (true) {
-		var parent = path.indexOf("/..");
-		if (parent == -1) {
-			break;
-		} else if (parent == 0) {
-			path = path.substring(3);
-			continue;
-		}
-
-		var pos = path.substring(0, parent).lastIndexOf("/");
-		if (pos == -1) {
-			pos = parent;
-		}
-		path = path.substring(0, pos) + path.substring(parent + 3);
-	}
-
-	path = leadingParents + path;
-	return filesystem.format(path);
+	return "/" + stack.join("/");
 }
 
 
@@ -123,13 +126,13 @@ filesystem.pathContains = function(pathA, pathB) {
 	pathA = filesystem.sanitise(pathA);
 	pathB = filesystem.sanitise(pathB);
 
-	if (pathB === "..")
+	if (pathB === "/..")
 		return false;
-	else if (pathB.substring(0,2) === "../")
+	else if (pathB.substring(0,4) === "/../")
 		return false;
 	else if (pathB === pathA)
 		return true;
-	else if (pathA === "")
+	else if (pathA === "/")
 		return true;
 	else
 		return pathB.substring(0,pathA.length + 1) === pathA + "/";
